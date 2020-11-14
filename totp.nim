@@ -45,6 +45,7 @@ proc hmacSha1(key: Bytes, message: Bytes): Bytes =
     result = sha1Hash(oKeyPad & sha1Hash(iKeyPad & message))
 
 proc hotp(key: Bytes, counter: uint64, digits = 6): string =
+    ## Generates HOTP value from `key` and `counter`.
     let c: Bytes = intToBytes(counter)
     let mac: Bytes = hmacSha1(key, c)
     let i: int = int(mac[^1]) mod 16
