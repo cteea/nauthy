@@ -2,15 +2,22 @@ import endians
 import std/sha1
 import typetraits
 import sequtils
+import math
+import strutils
 
 type
     Bytes = seq[byte]
 
-proc intToBytes(counter: uint64): Bytes =
-    ## Convert `counter` to a sequence of 8 bytes.
+proc intToBytes(num: uint64): Bytes =
+    ## Convert `num` to a sequence of 8 bytes in big endian.
     result = newSeq[byte](8)
-    var cp = @[counter]
+    var cp = @[num]
     bigEndian64(result[0].addr, cp[0].addr)
+
+proc bytesToint(numb: Bytes): uint64 =
+    ## Convert the sequence of bytes `numb` in big endian to integer.
+    for i in 1..numb.len:
+        result += uint64(numb[^i]) * uint64(256^(i-1))
 
 proc sha1Hash(input: Bytes): Bytes =
     ## Generates SHA-1 hash from `input`.
@@ -37,8 +44,13 @@ proc hmacSha1(key: Bytes, message: Bytes): Bytes =
 
     result = sha1Hash(oKeyPad & sha1Hash(iKeyPad & message))
 
+proc hotp(key: Bytes, counter: uint64, digits = 6): string =
+    let c: Bytes = intToBytes(counter)
+    let mac: Bytes = hmacSha1(key, c)
+    let i: int = int(mac[^1]) mod 16
+    var truncated: uint64 = bytesToint(mac[i..i+3]) mod uint64(2^31)
+    truncated = truncated mod uint64(10 ^ 6)
+    result = align($truncated, digits, '0')
+
 var key: Bytes = @[byte(8), 36, 77, 234, 68, 20, 73, 61, 235, 122]
-var c: Bytes = intToBytes(1)
-echo "key: ", key
-echo "c: ", c
-echo hmacSha1(key, c)
+echo hotp(key, 2)
