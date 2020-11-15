@@ -4,6 +4,7 @@ import typetraits
 import sequtils
 import math
 import strutils
+import times
 
 type
     Bytes = seq[byte]
@@ -53,5 +54,14 @@ proc hotp(key: Bytes, counter: uint64, digits = 6): string =
     truncated = truncated mod uint64(10 ^ 6)
     result = align($truncated, digits, '0')
 
+proc totp(key: Bytes, digits = 6, tk: int64 = 30, t0: int64 = 0): string =
+    ## Generates TOTP value from `key` using `t0` as the initial point in time
+    ## to start counting the time steps and the duration of each time step is
+    ## `tk` seconds. `t0` is Unix epoch so it is set to 0 by default.
+    let c = (int64(epochTime()) - t0) div tk
+    result = hotp(key, c.uint64)
+
 var key: Bytes = @[byte(8), 36, 77, 234, 68, 20, 73, 61, 235, 122]
 echo hotp(key, 2)
+
+echo totp(@[byte(72), 101, 108, 108, 111, 33, 222, 173, 190, 239])
