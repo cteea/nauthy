@@ -20,6 +20,34 @@ proc bytesToint(numb: Bytes): uint64 =
     for i in 1..numb.len:
         result += uint64(numb[^i]) * uint64(256^(i-1))
 
+proc b32AlphaDecode(c: char): uint64 =
+    ## Convert Base-32 alphabet to corresponding value.
+    ## NOTE: This proc assumes `c` is a valide RFC4648 Base-32 alphabet.
+    if c == '=':
+        result = 0
+    elif c >= 'A' and c <= 'Z':
+        result = uint64(ord(c) - ord('A'))
+    else:
+        result = 24 + parseBiggestUInt($c)
+
+proc base32Decode(str: string): Bytes =
+    ## Decode the BASE32 encoded string `str` into sequence of bytes.
+    let str = toUpperAscii(join(str.splitWhitespace))
+    if (str.len * 5) mod 8 != 0:
+        raise newException(CatchableError,
+                "The given base32-encoded string has incomplete data block.")
+    for i in countup(1, str.len, 8):
+        var x: uint64 = 0
+        for j in i .. i+7:
+            let alpha = str[^j]
+            if (alpha == '=' and j > i and str[^(j-1)] != '='):
+                raise newException(CatchableError,
+                    "Base32 string should only contain '=' as a padding at the end.")
+            if (alpha notin {'A' .. 'Z', '2' .. '7', '='}):
+                raise newException(CatchableError, "Base32 string contains invalid characters.")
+            x = x or (b32AlphaDecode(alpha) shl ((j-i)*5)) 
+        result = intToBytes(x)[3..7] & result
+
 proc sha1Hash(input: Bytes): Bytes =
     ## Generates SHA-1 hash from `input`.
     var str: string = ""
@@ -65,3 +93,6 @@ var key: Bytes = @[byte(8), 36, 77, 234, 68, 20, 73, 61, 235, 122]
 echo hotp(key, 2)
 
 echo totp(@[byte(72), 101, 108, 108, 111, 33, 222, 173, 190, 239])
+
+echo base32Decode("JBSWY3DPEHPK3PXP")
+echo base32Decode("NBSWY3DPEB3W64TMMQ======")
