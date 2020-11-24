@@ -20,3 +20,8 @@ proc totp*(key: Bytes, digits = 6, tk: int64 = 30, t0: int64 = 0): string =
     ## `tk` seconds. `t0` is Unix epoch so it is set to 0 by default.
     let c = (int64(epochTime()) - t0) div tk
     result = hotp(key, c.uint64)
+
+proc gAuthenticatorTOTP*(key: string): string =
+    ## Google Authenticator compatible TOTP where the 'key' is given as a
+    #base32 string.
+    result = totp(key.base32Decode)
