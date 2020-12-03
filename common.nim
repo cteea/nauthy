@@ -2,6 +2,11 @@ import endians
 import strutils
 import math
 
+const b32Table* = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+                   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+                   'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+                   'Y', 'Z', '2', '3', '4', '5', '6', '7']
+
 type
     Bytes* = seq[byte]
     HashFunc* = proc (data: Bytes): Bytes
@@ -44,3 +49,25 @@ proc base32Decode*(str: string): Bytes =
                 raise newException(CatchableError, "Base32 string contains invalid characters.")
             x = x or (b32AlphaDecode(alpha) shl ((j-i)*5)) 
         result = intToBytes(x)[3..7] & result
+
+proc base32Encode*(input: Bytes): string =
+    ## Encode the `input` into Base-32
+    let padding = repeat('=', (8*(5 - (input.len mod 5))) div 5)
+    var input = input
+    if input.len mod 5 != 0:
+        input = input & newSeq[byte](5 - (input.len mod 5))
+    for i in countup(0, input.len-1, 5):
+        let blk = input[i..i+4]
+        var x = 0'u64
+        for j in 0..4:
+            x = x or ((uint64)(blk[j]) shl ((4-j)*8))
+        echo "x = ", x
+        var m = 0xf800000000'u64
+        for j in 0..7:
+            let c = (x and m) shr ((7 - j)*5)
+            echo c
+            result.add(b32Table[c])
+            m = m shr 5
+    
+    if padding.len != 0:
+        result[^padding.len .. ^1] = padding
