@@ -1,6 +1,8 @@
 import endians
 import strutils
 import math
+import sequtils
+import sugar
 
 const b32Table* = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -17,7 +19,7 @@ proc intToBytes*(num: uint64): Bytes =
     var cp = @[num]
     bigEndian64(result[0].addr, cp[0].addr)
 
-proc bytesToint*(numb: Bytes): uint64 =
+proc bytesToInt*(numb: openArray[byte]): uint64 =
     ## Convert the sequence of bytes `numb` in big endian to integer.
     for i in 1..numb.len:
         result += uint64(numb[^i]) * uint64(256^(i-1))
@@ -50,10 +52,10 @@ proc base32Decode*(str: string): Bytes =
             x = x or (b32AlphaDecode(alpha) shl ((j-i)*5)) 
         result = intToBytes(x)[3..7] & result
 
-proc base32Encode*(input: Bytes): string =
+proc base32Encode*(input: openArray[byte | char]): string =
     ## Encode the `input` into Base-32
     let padding = repeat('=', (8*(5 - (input.len mod 5))) div 5)
-    var input = input
+    var input = input.map(c => (byte)(c)).toSeq
     if input.len mod 5 != 0:
         input = input & newSeq[byte](5 - (input.len mod 5))
     for i in countup(0, input.len-1, 5):
@@ -71,3 +73,8 @@ proc base32Encode*(input: Bytes): string =
     
     if padding.len != 0:
         result[^padding.len .. ^1] = padding
+
+proc base32Encode*(input: string): string =
+    ## Encode the `input` into Base-32
+    let input = input.map(c => (char)(c)).toSeq
+    result = base32Encode(input)
