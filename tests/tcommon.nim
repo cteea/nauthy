@@ -1,4 +1,4 @@
-import random, strutils
+import random, strutils, sequtils, sugar
 
 import "../common"
 
@@ -26,21 +26,66 @@ proc testBytesToInt() =
     doAssert x == r, "common.bytesToint() returns incorrect integer $1 for the byte sequence $2" % [$r, $bytes]
 
 proc testBase32Decode() =
-    let str = "The quick brown fox jumps over the lazy dog."
-    let encoded = "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLQ="
-    let decoded = base32Decode(encoded)
-    var isEqual = true
-    for i, c in str:
-        if decoded[i] != (uint8)(c):
-            isEqual = false
-            break
-    doAssert isEqual, "Test for common.base32Decode() failed"
+    var str = "The quick brown fox jumps over the lazy dog.".map(c => (byte)(c)).toSeq
+    var encoded = "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLQ="
+    var decoded = base32Decode(encoded)
+    doAssert decoded == str, "Test for common.base32Decode() failed; acutal=$1, output=$2" % [$str, $decoded]
+
+    str = @[(byte)('a')]
+    encoded = "ME======"
+    decoded = base32Decode(encoded)
+    doAssert decoded == str, "Test for common.base32Decode() failed; acutal=$1, output=$2" % [$str, $decoded]
+
+    str = "ab".map(c => (byte)(c)).toSeq
+    encoded = "MFRA===="
+    decoded = base32Decode(encoded)
+    doAssert decoded == str, "Test for common.base32Decode() failed; acutal=$1, output=$2" % [$str, $decoded]
+
+    str = "abc".map(c => (byte)(c)).toSeq
+    encoded = "MFRGG==="
+    decoded = base32Decode(encoded)
+    doAssert decoded == str, "Test for common.base32Decode() failed; acutal=$1, output=$2" % [$str, $decoded]
+
+    str = "abcd".map(c => (byte)(c)).toSeq
+    encoded = "MFRGGZA="
+    decoded = base32Decode(encoded)
+    doAssert decoded == str, "Test for common.base32Decode() failed; acutal=$1, output=$2" % [$str, $decoded]
+
+    str = "abcde".map(c => (byte)(c)).toSeq
+    encoded = "MFRGGZDF"
+    decoded = base32Decode(encoded)
+    doAssert decoded == str, "Test for common.base32Decode() failed; acutal=$1, output=$2" % [$str, $decoded]
 
 proc testBase32Encode() =
-    let str = "The quick brown fox jumps over the lazy dog."
-    let correctEncoding = "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLQ="
-    let encoded = base32Encode(str)
-    doAssert encoded == correctEncoding, "Test for common.testBase32Encode() failed"
+    var str = "The quick brown fox jumps over the lazy dog."
+    var correctEncoding = "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLQ="
+    var encoded = base32Encode(str)
+    doAssert encoded == correctEncoding, "Test for common.testBase32Encode() failed; correctEncoding = $1 but base32Encode() gives $2" % [$correctEncoding, $encoded]
+
+    str = "a"
+    correctEncoding = "ME======"
+    encoded = base32Encode(str)
+    doAssert encoded == correctEncoding, "Test for common.testBase32Encode() failed; correctEncoding = $1 but base32Encode() gives $2" % [$correctEncoding, $encoded]
+
+    str = "ab"
+    correctEncoding = "MFRA===="
+    encoded = base32Encode(str)
+    doAssert encoded == correctEncoding, "Test for common.testBase32Encode() failed; correctEncoding = $1 but base32Encode() gives $2" % [$correctEncoding, $encoded]
+
+    str = "abc"
+    correctEncoding = "MFRGG==="
+    encoded = base32Encode(str)
+    doAssert encoded == correctEncoding, "Test for common.testBase32Encode() failed; correctEncoding = $1 but base32Encode() gives $2" % [$correctEncoding, $encoded]
+
+    str = "abcd"
+    correctEncoding = "MFRGGZA="
+    encoded = base32Encode(str)
+    doAssert encoded == correctEncoding, "Test for common.testBase32Encode() failed; correctEncoding = $1 but base32Encode() gives $2" % [$correctEncoding, $encoded]
+
+    str = "abcde"
+    correctEncoding = "MFRGGZDF"
+    encoded = base32Encode(str)
+    doAssert encoded == correctEncoding, "Test for common.testBase32Encode() failed; correctEncoding = $1 but base32Encode() gives $2" % [$correctEncoding, $encoded]
 
 testIntToBytes()
 testBytesToInt()
