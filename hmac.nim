@@ -6,6 +6,9 @@ import typetraits
 import md5
 import strutils
 
+type
+    HmacFunc* = proc (key, message: openArray[byte]|Bytes|string): Bytes {.nimcall.}
+
 proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc, blockSize: int): Bytes =
     ## Generic HMAC implementation. Specify a hash function as argument to implement
     ## specific HMAC such as HMAC_SHA256 and HMAC_MD5.
@@ -31,8 +34,8 @@ proc sha1Hash(input: Bytes): Bytes =
     result = @(distinctBase(secureHash(str)))
 
 proc hmacSha1*(key, message : openArray[byte] | Bytes | string): Bytes =
-    let key = key.map(c => (byte)(c)).toSeq
-    let message = message.map(c => (byte)(c)).toSeq
+    let key = key.map(c => (byte)(c))
+    let message = message.map(c => (byte)(c))
     result = hmacX(key, message, sha1Hash, 64)
 
 proc md5hash(input: Bytes): Bytes =
