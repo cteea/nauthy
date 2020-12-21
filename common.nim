@@ -54,7 +54,15 @@ proc base32Decode*(str: string): Bytes =
 
 proc base32Encode*(input: openArray[byte | char]): string =
     ## Encode the `input` into Base-32
-    let padding = repeat('=', (8*(5 - (input.len mod 5))) div 5)
+    var padding: string
+    if input.len mod 5 == 1:
+        padding = repeat('=', 6)
+    elif input.len mod 5 == 2:
+        padding = repeat('=', 4)
+    elif input.len mod 5 == 3:
+        padding = repeat('=', 3)
+    elif input.len mod 5 == 4:
+        padding = "="
     var input = input.map(c => (byte)(c)).toSeq
     if input.len mod 5 != 0:
         input = input & newSeq[byte](5 - (input.len mod 5))
