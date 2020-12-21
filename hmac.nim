@@ -30,7 +30,7 @@ proc sha1Hash(input: Bytes): Bytes =
         str.add(chr(b))
     result = @(distinctBase(secureHash(str)))
 
-proc hmacSha1*(key, message : openArray[byte] | string): Bytes =
+proc hmacSha1*(key, message : openArray[byte] | Bytes | string): Bytes =
     let key = key.map(c => (byte)(c)).toSeq
     let message = message.map(c => (byte)(c)).toSeq
     result = hmacX(key, message, sha1Hash, 64)
@@ -42,7 +42,7 @@ proc md5hash(input: Bytes): Bytes =
     str = getMD5(str)
     result = cast[Bytes](parseHexStr(str))
 
-proc hmacMD5*(key, message : openArray[byte] | string): Bytes =
+proc hmacMD5*(key, message : openArray[byte] | Bytes | string): Bytes =
     let key = key.map(c => (byte)(c)).toSeq
     let message = message.map(c => (byte)(c)).toSeq
     result = hmacX(key, message, md5hash, 64)
