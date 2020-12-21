@@ -39,7 +39,7 @@ proc base32Decode*(str: string): Bytes =
     let str = toUpperAscii(join(str.splitWhitespace))
     if (str.len * 5) mod 8 != 0:
         raise newException(CatchableError,
-                "The given base32-encoded string has incomplete data block.")
+                "The given base32-encoded string has incomplete data block. It might have been truncated or is corrupted.")
     for i in countup(1, str.len, 8):
         var x: uint64 = 0
         for j in i .. i+7:
@@ -51,6 +51,11 @@ proc base32Decode*(str: string): Bytes =
                 raise newException(CatchableError, "Base32 string contains invalid characters.")
             x = x or (b32AlphaDecode(alpha) shl ((j-i)*5)) 
         result = intToBytes(x)[3..7] & result
+    let paddingCount = str.count({'='})
+    if paddingCount == 6: result = result[0..^5]
+    if paddingCount == 4: result = result[0..^4]
+    if paddingCount == 3: result = result[0..^3]
+    if paddingCount == 1: result = result[0..^2]
 
 proc base32Encode*(input: openArray[byte | char]): string =
     ## Encode the `input` into Base-32
