@@ -10,14 +10,14 @@ proc hotp*(key: Bytes, counter: uint64, digits = 6, hmac = hmacSha1): string =
     let mac: Bytes = hmac(key, c)
     let i: int = int(mac[^1]) mod 16
     var truncated: uint64 = bytesToint(mac[i..i+3]) mod uint64(2^31)
-    truncated = truncated mod uint64(10 ^ 6)
+    truncated = truncated mod uint64(10 ^ digits)
     result = align($truncated, digits, '0')
 
-proc totp*(key: Bytes, digits = 6, interval: int64 = 30, t0: int64 = 0, hmac = hmacSha1): string =
+proc totp*(key: Bytes, digits = 6, interval: int64 = 30, hmac = hmacSha1, now: int64 = (int64)(epochTime()), t0: int64 = 0): string =
     ## Generates TOTP value from `key` using `t0` as the initial point in time
     ## to begin counting the time steps and the interval of each time step is
     ## 30 seconds by default. `t0` is Unix epoch so it is set to 0 by default.
-    let c = (int64(epochTime()) - t0) div interval
+    let c = (now - t0) div interval
     result = hotp(key, c.uint64, digits, hmac)
 
 proc b32totp*(key: string, digits = 6, inteval: int64 = 30): string =
