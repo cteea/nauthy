@@ -4,8 +4,7 @@ import times
 import "./common"
 import "./hmac"
 
-
-proc hotp*(key: Bytes, counter: uint64, digits = 6, hmac: HmacFunc = hmacSha1): string =
+proc hotp*(key: Bytes, counter: uint64, digits = 6, hmac = hmacSha1): string =
     ## Generates HOTP value from `key` and `counter`.
     let c: Bytes = intToBytes(counter)
     let mac: Bytes = hmac(key, c)
@@ -14,7 +13,7 @@ proc hotp*(key: Bytes, counter: uint64, digits = 6, hmac: HmacFunc = hmacSha1): 
     truncated = truncated mod uint64(10 ^ 6)
     result = align($truncated, digits, '0')
 
-proc totp*(key: Bytes, digits = 6, interval: int64 = 30, t0: int64 = 0, hmac: HmacFunc = hmacSha1): string =
+proc totp*(key: Bytes, digits = 6, interval: int64 = 30, t0: int64 = 0, hmac = hmacSha1): string =
     ## Generates TOTP value from `key` using `t0` as the initial point in time
     ## to begin counting the time steps and the interval of each time step is
     ## 30 seconds by default. `t0` is Unix epoch so it is set to 0 by default.
