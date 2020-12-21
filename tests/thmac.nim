@@ -1,14 +1,14 @@
-import strutils
+import strutils, sequtils, sugar
 import "../hmac", "../common"
 
 proc testHmacSha1() =
-    var k = "key"
-    var msg = "The quick brown fox jumps over the lazy dog"
+    var k: Bytes = "key".map(c => (byte)(c))
+    var msg: Bytes = "The quick brown fox jumps over the lazy dog".map(c => (byte)(c))
     let correctOutput = @[222'u8, 124, 155, 133, 184, 183, 138, 166, 188, 138, 122, 54, 247, 10, 144, 112, 28, 157, 180, 217]
     var result = hmacSha1(k, msg)
     doAssert result == correctOutput, "Test for hamcSha1 failed: correct value = $1, result = $2" % [$correctOutput, $result]
 
-    k = "12345678901234567890"
+    k = "12345678901234567890".map(c => (byte)(c))
     let correctResults = [
         [204'u8, 147, 207, 24, 80, 141, 148, 147, 76, 100, 182, 93, 139, 167, 102, 127, 183, 205, 228, 176],
         [117'u8, 164, 138, 25, 212, 203, 225, 0, 100, 78, 138, 193, 57, 126, 234, 116, 122, 45, 51, 171],
@@ -28,8 +28,8 @@ proc testHmacSha1() =
         doAssert result == correct, "Test for hamcSha1 failed: correct value = $1, result = $2" % [$correctOutput, $result]
 
 proc testHmacMD5() =
-    let k = "key"
-    let msg = "The quick brown fox jumps over the lazy dog"
+    let k: Bytes = "key".map(c => (byte)(c))
+    let msg: Bytes = "The quick brown fox jumps over the lazy dog".map(c => (byte)(c))
     let correctOutput = @[128'u8, 7, 7, 19, 70, 62, 119, 73, 185, 12, 45, 194, 73, 17, 226, 117]
     doAssert hmacMD5(k, msg) == correctOutput, "Test for hamcSha1 failed"
 
