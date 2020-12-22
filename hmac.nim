@@ -23,7 +23,7 @@ proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc): Bytes =
     result = hash.hash(oKeyPad & hash.hash(iKeyPad & message))
 
 proc sha1Digest*(input: Bytes): Bytes =
-    ## Generates SHA-1 hash from `input`.
+    ## Generates SHA-1 hash from the given bytes.
     var str: string = ""
     for b in input:
         str.add(chr(b))
@@ -31,12 +31,8 @@ proc sha1Digest*(input: Bytes): Bytes =
 
 let sha1Hash*: HashFunc = (hash: sha1Digest, blockSize: 64)
 
-# proc hmacSha1*(key, message : Bytes): Bytes =
-#     let key = key.map(c => (byte)(c))
-#     let message = message.map(c => (byte)(c))
-#     result = hmacX(key, message, sha1Hash, 64)
-
 proc md5Digest*(input: Bytes): Bytes =
+    ## Generates MD5 hash from the given bytes.
     var str: string
     for c in input:
         str.add(chr(c))
@@ -44,8 +40,3 @@ proc md5Digest*(input: Bytes): Bytes =
     result = cast[Bytes](parseHexStr(str))
 
 let md5Hash*: HashFunc = (md5Digest, 64)
-
-# proc hmacMD5*(key, message : Bytes): Bytes =
-#     let key = key.map(c => (byte)(c)).toSeq
-#     let message = message.map(c => (byte)(c)).toSeq
-#     result = hmacX(key, message, md5hash, 64)
