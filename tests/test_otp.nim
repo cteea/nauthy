@@ -18,7 +18,7 @@ proc testTotp() =
     let correctValues = [(59'i64, "94287082"), (1111111109'i64, "07081804"), (1111111111'i64, "14050471"),
                          (1234567890'i64, "89005924"), (2000000000'i64, "69279037"), (20000000000'i64, "65353130")]
     for (time, correct) in correctValues:
-        let value = totp(secret, 8, 30, hmacSha1, time)
+        let value = totp(secret, 8, 30, sha1Hash, time)
         doAssert value == correct, "Test for otp.totp() failed; result = $1, correct_value = $2" % [$value, $correct]
 
 testHotp()

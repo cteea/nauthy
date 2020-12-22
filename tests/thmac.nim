@@ -5,7 +5,7 @@ proc testHmacSha1() =
     var k: Bytes = "key".map(c => (byte)(c))
     var msg: Bytes = "The quick brown fox jumps over the lazy dog".map(c => (byte)(c))
     let correctOutput = @[222'u8, 124, 155, 133, 184, 183, 138, 166, 188, 138, 122, 54, 247, 10, 144, 112, 28, 157, 180, 217]
-    var result = hmacSha1(k, msg)
+    var result = hmacX(k, msg, sha1Hash)
     doAssert result == correctOutput, "Test for hamcSha1 failed: correct value = $1, result = $2" % [$correctOutput, $result]
 
     k = "12345678901234567890".map(c => (byte)(c))
@@ -23,7 +23,7 @@ proc testHmacSha1() =
     ]
     for i in 0..9:
         let c = intToBytes((uint64)(i))
-        let result = hmacSha1(k, c)
+        let result = hmacX(k, c, sha1Hash)
         let correct = correctResults[i]
         doAssert result == correct, "Test for hamcSha1 failed: correct value = $1, result = $2" % [$correctOutput, $result]
 
@@ -31,7 +31,7 @@ proc testHmacMD5() =
     let k: Bytes = "key".map(c => (byte)(c))
     let msg: Bytes = "The quick brown fox jumps over the lazy dog".map(c => (byte)(c))
     let correctOutput = @[128'u8, 7, 7, 19, 70, 62, 119, 73, 185, 12, 45, 194, 73, 17, 226, 117]
-    doAssert hmacMD5(k, msg) == correctOutput, "Test for hamcSha1 failed"
+    doAssert hmacX(k, msg, md5Hash) == correctOutput, "Test for hamcSha1 failed"
 
 testHmacSha1()
 testHmacMD5()
