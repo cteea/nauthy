@@ -7,10 +7,10 @@ import "./hmac"
 type
     OtpValueLen = range[6..10]
     TimeInterval = range[1..int.high]
+    EpochSecond = range[BiggestUInt.low..BiggestUInt.high]
 
     Hotp* = tuple
         key: Bytes
-        counter: uint64
         length: OtpValueLen
         hashFunc: HashFunc
     
@@ -19,15 +19,14 @@ type
         length: OtpValueLen
         interval: TimeInterval
         hashFunc: HashFunc
-        t0: uint64
-        timeNow: uint64
+        t0: EpochSecond
 
-proc newHotp*(key: Bytes, counter: uint64 = 0, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
-    result = (key, counter, length, hashFunc)
+proc newHotp*(key: Bytes, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
+    result = (key, length, hashFunc)
 
 proc newTotp*(key: Bytes, length: OtpValueLen = 6, interval: TimeInterval = 30,
-              hashFunc: HashFunc = sha1Hash, t0: uint64 = 0, now: uint64 = (uint64)(epochTime())): Totp =
-    result = (key, length, interval, hashFunc, t0, now)
+              hashFunc: HashFunc = sha1Hash, t0: EpochSecond = 0,): Totp =
+    result = (key, length, interval, hashFunc, t0)
 
 proc hotp*(key: Bytes, counter: uint64, digits = 6, hmac: HmacFunc = hmacSha1): string =
     ## Generates HOTP value from `key` and `counter`.
