@@ -49,5 +49,5 @@ proc at*(hotp: Hotp, counter: BiggestUInt): string =
     result = hotp(hotp.key, counter, hotp.length, hotp.hashFunc)
 
 proc at*(totp: Totp, now: EpochSecond = (uint64)(epochTime())): string =
-    ## TOTP value at time `now`.
+    ## TOTP value at time `now`. If `now` is not specified, the current epoch time is used instead.
     result = totp(totp.key, totp.length, totp.interval, totp.hashFunc, now, totp.t0)

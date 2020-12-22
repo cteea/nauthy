@@ -1,9 +1,5 @@
-import sequtils
-import ./common
-import std/sha1
-import typetraits
-import md5
-import strutils
+import sequtils, std/sha1, typetraits, md5, strutils
+import "./common"
 
 proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc): Bytes =
     ## Generic HMAC implementation. Specify a hash function as argument to implement

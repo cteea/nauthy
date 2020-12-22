@@ -1,8 +1,4 @@
-import endians
-import strutils
-import math
-import sequtils
-import sugar
+import endians, strutils, math, sequtils, sugar
 
 const b32Table* = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
