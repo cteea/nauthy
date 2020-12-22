@@ -1,5 +1,5 @@
 import sequtils, sugar, strutils
-import "../otp", "../common"
+import "../src/nauthy"
 
 proc testHotp() =
     ## Test HOTP implementation using the test values provided in RFC4226.

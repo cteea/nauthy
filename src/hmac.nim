@@ -1,5 +1,5 @@
 import sequtils, std/sha1, typetraits, md5, strutils
-import "./common"
+include "./utils"
 
 proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc): Bytes =
     ## Generic HMAC implementation. Specify a hash function as argument to implement

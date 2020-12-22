@@ -1,5 +1,5 @@
 import math, strutils, times
-import "./common", "./hmac"
+include "./hmac"
 
 type
     OtpValueLen* = range[6..10]

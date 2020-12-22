@@ -1,5 +1,5 @@
 import strutils, sequtils, sugar
-import "../hmac", "../common"
+import "../src/nauthy"
 
 proc testHmacSha1() =
     var k: Bytes = "key".map(c => (byte)(c))
