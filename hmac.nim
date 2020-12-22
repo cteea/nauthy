@@ -6,6 +6,9 @@ import typetraits
 import md5
 import strutils
 
+type
+    HmacFunc* = proc (key, message: Bytes): Bytes
+
 proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc, blockSize: int): Bytes =
     ## Generic HMAC implementation. Specify a hash function as argument to implement
     ## specific HMAC such as HMAC_SHA256 and HMAC_MD5.
@@ -23,7 +26,7 @@ proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc, blockSize: int): Bytes =
 
     result = hash(oKeyPad & hash(iKeyPad & message))
 
-proc sha1Hash(input: Bytes): Bytes =
+proc sha1Hash*(input: Bytes): Bytes =
     ## Generates SHA-1 hash from `input`.
     var str: string = ""
     for b in input:
@@ -35,7 +38,7 @@ proc hmacSha1*(key, message : Bytes): Bytes =
     let message = message.map(c => (byte)(c))
     result = hmacX(key, message, sha1Hash, 64)
 
-proc md5hash(input: Bytes): Bytes =
+proc md5hash*(input: Bytes): Bytes =
     var str: string
     for c in input:
         str.add(chr(c))
