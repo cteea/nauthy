@@ -11,7 +11,9 @@ const b32Table* = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 
 type
     Bytes* = seq[byte]
-    HashFunc* = proc (data: Bytes): Bytes
+    HashFunc* = tuple
+        hash: proc (input: Bytes): Bytes {.nimcall.}
+        blockSize: int
 
 proc intToBytes*(num: uint64): Bytes =
     ## Convert `num` to a sequence of 8 bytes in big endian.
