@@ -1,4 +1,4 @@
-import math, strutils, times
+import math, strutils, times, sequtils, sugar
 include "./hashfuncs"
 
 type
@@ -18,14 +18,26 @@ type
         hashFunc: HashFunc
         t0: EpochSecond
 
-proc newHotp*(key: Bytes, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
+proc newHotp*(key: string | Bytes, b32Decode: bool = false, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
     ## Constructs a new HOTP.
-    result = (key, length, hashFunc)
+    if b32Decode:
+        let encoded: string = key.map(b => chr(b.byte) & "").join("")
+        let decoded = base32Decode(encoded)
+        result = (decoded, length, hashFunc)
+    else:
+        let key: Bytes = key.map(c => byte(c))
+        result = (key, length, hashFunc)
 
-proc newTotp*(key: Bytes, length: OtpValueLen = 6, interval: TimeInterval = 30,
+proc newTotp*(key: string | Bytes, b32Decode: bool = true, length: OtpValueLen = 6, interval: TimeInterval = 30,
               hashFunc: HashFunc = sha1Hash, t0: EpochSecond = 0,): Totp =
     ## Constructs a new TOTP.
-    result = (key, length, interval, hashFunc, t0)
+    if b32Decode:
+        let encoded: string = key.map(b => chr(b.byte) & "").join("")
+        let decoded = base32Decode(encoded)
+        result = (decoded, length, interval, hashFunc, t0)
+    else:
+        let key: Bytes = key.map(c => byte(c))
+        result = (key, length, interval, hashFunc, t0)
 
 proc hotp(key: Bytes, counter: BiggestUInt, digits: OtpValueLen = 6, hash: HashFunc = sha1Hash): string =
     ## Generates HOTP value from `key` and `counter`.
