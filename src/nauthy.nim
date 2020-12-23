@@ -1,10 +1,10 @@
 import math, strutils, times
-include "./hmac"
+include "./hashfuncs"
 
 type
     OtpValueLen* = range[6..10]
     TimeInterval* = range[1..int.high]
-    EpochSecond* = range[BiggestUInt.low..BiggestUInt.high]
+    EpochSecond* = BiggestUInt
 
     Hotp* = tuple
         key: Bytes

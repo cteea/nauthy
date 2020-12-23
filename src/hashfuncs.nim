@@ -1,7 +1,7 @@
 import sequtils, std/sha1, typetraits, md5, strutils
 include "./utils"
 
-proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc): Bytes =
+proc hmacX(key: Bytes, message: Bytes, hash: HashFunc): Bytes {.used.} =
     ## Generic HMAC implementation. Specify a hash function as argument to implement
     ## specific HMAC such as HMAC_SHA256 and HMAC_MD5.
     const opadValue = byte(0x5c)
@@ -18,7 +18,7 @@ proc hmacX*(key: Bytes, message: Bytes, hash: HashFunc): Bytes =
 
     result = hash.hash(oKeyPad & hash.hash(iKeyPad & message))
 
-proc sha1Digest*(input: Bytes): Bytes =
+proc sha1Digest(input: Bytes): Bytes =
     ## Generates SHA-1 hash from the given bytes.
     var str: string = ""
     for b in input:
@@ -27,7 +27,7 @@ proc sha1Digest*(input: Bytes): Bytes =
 
 let sha1Hash*: HashFunc = (hash: sha1Digest, blockSize: 64)
 
-proc md5Digest*(input: Bytes): Bytes =
+proc md5Digest(input: Bytes): Bytes =
     ## Generates MD5 hash from the given bytes.
     var str: string
     for c in input:
@@ -35,4 +35,4 @@ proc md5Digest*(input: Bytes): Bytes =
     str = getMD5(str)
     result = cast[Bytes](parseHexStr(str))
 
-let md5Hash*: HashFunc = (md5Digest, 64)
+let md5Hash*: HashFunc = (hash: md5Digest, blockSize: 64)

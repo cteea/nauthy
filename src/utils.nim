@@ -1,6 +1,6 @@
 import endians, strutils, math, sequtils, sugar
 
-const b32Table* = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+const b32Table = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
                    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
                    'Y', 'Z', '2', '3', '4', '5', '6', '7']
@@ -11,13 +11,13 @@ type
         hash: proc (input: Bytes): Bytes {.nimcall.}
         blockSize: int
 
-proc intToBytes*(num: uint64): Bytes =
+proc intToBytes(num: uint64): Bytes =
     ## Convert `num` to a sequence of 8 bytes in big endian.
     result = newSeq[byte](8)
     var cp = @[num]
     bigEndian64(result[0].addr, cp[0].addr)
 
-proc bytesToInt*(numb: openArray[byte]): uint64 =
+proc bytesToInt(numb: openArray[byte]): uint64 {.used.} =
     ## Convert the sequence of bytes `numb` in big endian to integer.
     for i in 1..numb.len:
         result += uint64(numb[^i]) * uint64(256^(i-1))
@@ -32,7 +32,7 @@ proc b32AlphaDecode(c: char): uint64 =
     else:
         result = 24 + parseBiggestUInt($c)
 
-proc base32Decode*(str: string): Bytes =
+proc base32Decode(str: string): Bytes {.used.} =
     ## Decode the BASE32 encoded string `str` into sequence of bytes.
     let str = toUpperAscii(join(str.splitWhitespace))
     if (str.len * 5) mod 8 != 0:
@@ -55,7 +55,7 @@ proc base32Decode*(str: string): Bytes =
     if paddingCount == 3: result = result[0..^3]
     if paddingCount == 1: result = result[0..^2]
 
-proc base32Encode*(input: openArray[byte | char]): string =
+proc base32Encode(input: openArray[byte | char]): string =
     ## Encode the `input` into Base-32
     var padding: string
     if input.len mod 5 == 1:
@@ -85,7 +85,7 @@ proc base32Encode*(input: openArray[byte | char]): string =
     if padding.len != 0:
         result[^padding.len .. ^1] = padding
 
-proc base32Encode*(input: string): string =
+proc base32Encode(input: string): string {.used.} =
     ## Encode the `input` into Base-32
     let input = input.map(c => (char)(c)).toSeq
     result = base32Encode(input)
