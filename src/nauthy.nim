@@ -39,8 +39,9 @@ proc newTotp*(key: string | Bytes, b32Decode: bool = true, length: OtpValueLen =
         let key: Bytes = key.map(c => byte(c))
         result = (key, length, interval, hashFunc, t0)
 
-proc hotp(key: Bytes, counter: BiggestUInt, digits: OtpValueLen = 6, hash: HashFunc = sha1Hash): string =
+proc getHotp(key: Bytes, counter: SomeUnsignedInt, digits: OtpValueLen = 6, hash: HashFunc = sha1Hash): string =
     ## Generates HOTP value from `key` and `counter`.
+    let counter = (uint64)(counter)
     let c: Bytes = intToBytes(counter)
     let mac: Bytes = hmacX(key, c, hash)
     let i: int = int(mac[^1]) mod 16
@@ -48,18 +49,19 @@ proc hotp(key: Bytes, counter: BiggestUInt, digits: OtpValueLen = 6, hash: HashF
     truncated = truncated mod uint64(10 ^ digits)
     result = align($truncated, digits, '0')
 
-proc totp(key: Bytes, digits: OtpValueLen = 6, interval: TimeInterval = 30,
+proc getTotp(key: Bytes, digits: OtpValueLen = 6, interval: TimeInterval = 30,
            hash: HashFunc = sha1Hash, now: EpochSecond = (EpochSecond)(epochTime()), t0: EpochSecond = 0): string =
     ## Generates TOTP value from `key` using `t0` as the initial point in time
     ## to begin counting the time steps and the interval of each time step is
     ## 30 seconds by default. `t0` is Unix epoch so it is set to 0 by default.
     let c = (now - t0) div (EpochSecond)(interval)
-    result = hotp(key, c.uint64, digits, hash)
+    result = getHotp(key, c.uint64, digits, hash)
 
-proc at*(hotp: Hotp, counter: BiggestUInt): string =
+proc at*(hotp: Hotp, counter: SomeInteger): string =
     ## HOTP value at `counter`.
-    result = hotp(hotp.key, counter, hotp.length, hotp.hashFunc)
+    doAssert counter >= 0, "value for `counter` must not be negative"
+    result = getHotp(hotp.key, (uint64)(counter), hotp.length, hotp.hashFunc)
 
 proc at*(totp: Totp, now: EpochSecond = (uint64)(epochTime())): string =
     ## TOTP value at time `now`. If `now` is not specified, the current epoch time is used instead.
-    result = totp(totp.key, totp.length, totp.interval, totp.hashFunc, now, totp.t0)
+    result = getTotp(totp.key, totp.length, totp.interval, totp.hashFunc, now, totp.t0)
