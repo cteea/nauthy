@@ -80,5 +80,11 @@ proc testTotpValidRFC() =
         let value = totp4.at(time)
         doAssert value == correct, "Test for Totp.at() failed; result = $1, correct_value = $2" % [$value, $correct]
 
+proc testHotpInvalid() =
+    let hotp = newHotp("1234567890")
+    doAssertRaises(AssertionDefect):
+        discard hotp.at(-1)
+
 testHotpValidRFC()
 testTotpValidRFC()
+testHotpInvalid()
