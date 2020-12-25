@@ -74,11 +74,9 @@ proc base32Encode(input: openArray[byte | char]): string =
         var x = 0'u64
         for j in 0..4:
             x = x or ((uint64)(blk[j]) shl ((4-j)*8))
-        echo "x = ", x
         var m = 0xf800000000'u64
         for j in 0..7:
             let c = (x and m) shr ((7 - j)*5)
-            echo c
             result.add(b32Table[c])
             m = m shr 5
     
