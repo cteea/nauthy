@@ -65,3 +65,11 @@ proc at*(hotp: Hotp, counter: SomeInteger): string =
 proc at*(totp: Totp, now: EpochSecond = (uint64)(epochTime())): string =
     ## TOTP value at time `now`. If `now` is not specified, the current epoch time is used instead.
     result = getTotp(totp.key, totp.length, totp.interval, totp.hashFunc, now, totp.t0)
+
+proc verify*(hotp: Hotp, value: string, counter: SomeInteger): bool =
+    ## Verify that the HOTP value for `counter` is correct.
+    result = value == hotp.at(counter)
+
+proc verify*(totp: Totp, value: string, now: EpochSecond = (uint64)(epochTime())): bool =
+    ## Verify that the TOTP value for `now` is correct.
+    result = value == totp.at(now)
