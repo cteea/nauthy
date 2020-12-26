@@ -96,7 +96,19 @@ proc testHotpVerify() =
         while r == correctValues[i]: r = $rand(999999)
         doAssert not hotp.verify(r, i)
 
+proc testTotpVerify() =
+    let totp = newTotp(key="12345678901234567890".base32Encode, length=8)
+    let correctValues = [(59'u64, "94287082"), (1111111109'u64, "07081804"), (1111111111'u64, "14050471"),
+                         (1234567890'u64, "89005924"), (2000000000'u64, "69279037"), (20000000000'u64, "65353130")]
+    for (time, correct) in correctValues:
+        doAssert totp.verify(correct, time)
+        randomize()
+        var r = $rand(99999999)
+        while r == correct: r = $rand(99999999)
+        doAssert not totp.verify(r, time)
+
 testHotpValidRFC()
 testTotpValidRFC()
 testHotpInvalid()
 testHotpVerify()
+testTotpVerify()
