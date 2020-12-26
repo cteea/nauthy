@@ -1,4 +1,4 @@
-import sequtils, sugar, strutils
+import sequtils, sugar, strutils, random
 include "../src/utils"
 import "../src/nauthy"
 
@@ -85,6 +85,18 @@ proc testHotpInvalid() =
     doAssertRaises(AssertionDefect):
         discard hotp.at(-1)
 
+proc testHotpVerify() =
+    let hotp = newHotp("12345678901234567890")
+    let correctValues = ["755224", "287082", "359152", "969429", "338314",
+                         "254676", "287922", "162583", "399871", "520489"]
+    for i in 0..9:
+        doAssert hotp.verify(correctValues[i], i)
+        randomize()
+        var r = $rand(999999)
+        while r == correctValues[i]: r = $rand(999999)
+        doAssert not hotp.verify(r, i)
+
 testHotpValidRFC()
 testTotpValidRFC()
 testHotpInvalid()
+testHotpVerify()
