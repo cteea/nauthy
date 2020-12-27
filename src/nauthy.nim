@@ -1,4 +1,4 @@
-import math, strutils, times, sequtils, sugar
+import math, strutils, times, sequtils, sugar, random
 include "./hashfuncs"
 
 type
@@ -73,3 +73,9 @@ proc verify*(hotp: Hotp, value: string, counter: SomeInteger): bool =
 proc verify*(totp: Totp, value: string, now: EpochSecond = (uint64)(epochTime())): bool =
     ## Verify that the TOTP value for `now` is correct.
     result = value == totp.at(now)
+
+proc random_base32*(): string =
+    randomize()
+    for i in 1..16:
+        let pick = $sample(b32Table)
+        result = result & pick
