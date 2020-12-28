@@ -107,8 +107,20 @@ proc testTotpVerify() =
         while r == correct: r = $rand(99999999)
         doAssert not totp.verify(r, time)
 
+proc testRandomBase32() =
+    let r1 = randomBase32()
+    let r2 = randomBase32()
+
+    doAssert r1.len == 16 and r2.len == 16, "randomBase32() generates Base32 encoded string of incorrect length"
+    for i in r1.low..r1.high:
+        doAssert r1[i] in b32Table, "randomBase32() generates invalid string"
+        doAssert r2[i] in b32Table, "randomBase32() generates invalid string"
+
+    doAssert r1 != r2, "randomBase32() might be producing the same string every time"
+
 testHotpValidRFC()
 testTotpValidRFC()
 testHotpInvalid()
 testHotpVerify()
 testTotpVerify()
+testRandomBase32()

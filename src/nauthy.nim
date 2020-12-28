@@ -74,7 +74,9 @@ proc verify*(totp: Totp, value: string, now: EpochSecond = (uint64)(epochTime())
     ## Verify that the TOTP value for `now` is correct.
     result = value == totp.at(now)
 
-proc random_base32*(): string =
+proc randomBase32*(): string =
+    ## Generates a random 16-characters Base-32 encoded string.
+    ## Compatible with other OTP apps such as Google Authenticator, Authy, etc...
     randomize()
     for i in 1..16:
         let pick = $sample(b32Table)
