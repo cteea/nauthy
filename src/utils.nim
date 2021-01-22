@@ -32,12 +32,29 @@ proc b32AlphaDecode(c: char): uint64 =
     else:
         result = 24 + parseBiggestUInt($c)
 
-proc base32Decode(str: string): Bytes {.used.} =
+proc getPadding(inputLen: int): string =
+    ## Helper function for base32Decode and base32Encode to generate
+    ## appropriate number of paddings.
+    if inputLen mod 5 == 1:
+        result = repeat('=', 6)
+    elif inputLen mod 5 == 2:
+        result = repeat('=', 4)
+    elif inputLen mod 5 == 3:
+        result = repeat('=', 3)
+    elif inputLen mod 5 == 4:
+        result = "="
+    else:
+        result = ""
+
+proc base32Decode(str: string, autoFixPadding = false): Bytes {.used.} =
     ## Decode the BASE32 encoded string `str` into sequence of bytes.
-    let str = toUpperAscii(join(str.splitWhitespace))
+    var str = toUpperAscii(join(str.splitWhitespace))
     if (str.len * 5) mod 8 != 0:
-        raise newException(CatchableError,
-                "The given base32-encoded string has incomplete data block. It might have been truncated or is corrupted.")
+        if autoFixPadding:
+            str = str & getPadding(str.len)
+        else:
+            raise newException(CatchableError,
+                    "The given base32-encoded string has incomplete data block. It might have been truncated or is corrupted.")
     for i in countup(1, str.len, 8):
         var x: uint64 = 0
         for j in i .. i+7:
@@ -55,17 +72,13 @@ proc base32Decode(str: string): Bytes {.used.} =
     if paddingCount == 3: result = result[0..^3]
     if paddingCount == 1: result = result[0..^2]
 
-proc base32Encode(input: openArray[byte | char]): string =
+proc base32Encode(input: openArray[byte | char], ignorePadding = false): string =
     ## Encode the `input` into Base-32
     var padding: string
-    if input.len mod 5 == 1:
-        padding = repeat('=', 6)
-    elif input.len mod 5 == 2:
-        padding = repeat('=', 4)
-    elif input.len mod 5 == 3:
-        padding = repeat('=', 3)
-    elif input.len mod 5 == 4:
-        padding = "="
+    if ignorePadding:
+        padding = ""
+    else:
+        padding = getPadding(input.len)
     var input = input.map(c => (byte)(c)).toSeq
     if input.len mod 5 != 0:
         input = input & newSeq[byte](5 - (input.len mod 5))
