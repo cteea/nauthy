@@ -1,4 +1,4 @@
-import math, strutils, times, sequtils, sugar, random
+import math, strutils, times, sequtils, sugar, random, uri, tables
 include "./hashfuncs"
 
 type
@@ -6,10 +6,20 @@ type
     TimeInterval* = range[1..int.high]
     EpochSecond* = BiggestUInt
 
+    OtpType* = enum
+        HotpT = "hotp",
+        TotpT = "totp"
+
+    Uri* = ref object
+        issuer*: string
+        accountname*: string
+
     Hotp* = tuple
         key: Bytes
         length: OtpValueLen
         hashFunc: HashFunc
+        counter: uint64
+        uri: Uri
     
     Totp* = tuple
         key: Bytes
@@ -17,27 +27,64 @@ type
         interval: TimeInterval
         hashFunc: HashFunc
         t0: EpochSecond
+        uri: Uri
+    
+    Otp* = ref object
+        case otpType*: OtpType
+        of HotpT: hotp*: Hotp
+        of TotpT: totp*: Totp
 
-proc newHotp*(key: string | Bytes, b32Decode: bool = false, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
+proc initHotp*(key: string | Bytes, b32Decode: bool = false, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
     ## Constructs a new HOTP.
     if b32Decode:
         let encoded: string = key.map(b => chr(b.byte) & "").join("")
         let decoded = base32Decode(encoded)
-        result = (decoded, length, hashFunc)
+        result = (decoded, length, hashFunc, 0'u64, nil)
     else:
         let key: Bytes = key.map(c => byte(c))
-        result = (key, length, hashFunc)
+        result = (key, length, hashFunc, 0'u64, nil)
 
-proc newTotp*(key: string | Bytes, b32Decode: bool = true, length: OtpValueLen = 6, interval: TimeInterval = 30,
+proc initTotp*(key: string | Bytes, b32Decode: bool = true, length: OtpValueLen = 6, interval: TimeInterval = 30,
               hashFunc: HashFunc = sha1Hash, t0: EpochSecond = 0,): Totp =
     ## Constructs a new TOTP.
     if b32Decode:
         let encoded: string = key.map(b => chr(b.byte) & "").join("")
         let decoded = base32Decode(encoded)
-        result = (decoded, length, interval, hashFunc, t0)
+        result = (decoded, length, interval, hashFunc, t0, nil)
     else:
         let key: Bytes = key.map(c => byte(c))
-        result = (key, length, interval, hashFunc, t0)
+        result = (key, length, interval, hashFunc, t0, nil)
+
+proc otpFromUri*(uri: string): Otp =
+    ## Initialize HOTP/TOTP from a URI.
+    let uri = parseUri(uri)
+    doAssert uri.scheme == "otpauth", "invalid URI"
+    let otpType = parseEnum[OtpType](uri.hostname)
+    let label = uri.path[1..^1].decodeUrl().split(':')
+    let parameters = uri.query.split('&')
+    var params = initTable[string, string]()
+    for p in parameters:
+        let s = p.split('=')
+        params[s[0]] = s[1]
+    let secret = params["secret"]
+    let issuer = params["issuer"].strip()
+    # let algorithm = params["algorithm"]
+    let digits = if params.hasKey("digits"): (OtpValueLen)(params["digits"].parseInt) else: (OtpValueLen)(6)
+    var accname = if label.len == 2: label[1] else: label[0]
+    accname = accname.strip()
+    if otpType == HotpT:
+        let counter = params["counter"].parseInt
+        var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits) # TODO: currently ignoring algorithm param
+        let uri = Uri(issuer: issuer, accountname: accname)
+        hotp.uri = uri
+        hotp.counter = (uint64)(counter)
+        result = Otp(otpType: HotpT, hotp: hotp)
+    else:
+        let period = if params.hasKey("period"): (TimeInterval)(params["period"].parseInt) else: (TimeInterval)(30)
+        var totp = initTotp(secret.base32Decode(autoFixPadding=true), false, digits, period) # TODO: currently ignoring algorithm param
+        let uri = Uri(issuer: issuer, accountname: accname)
+        totp.uri = uri
+        result  = Otp(otpType: TotpT, totp: totp)
 
 proc getHotp(key: Bytes, counter: SomeUnsignedInt, digits: OtpValueLen = 6, hash: HashFunc = sha1Hash): string =
     ## Generates HOTP value from `key` and `counter`.
@@ -81,3 +128,5 @@ proc randomBase32*(): string =
     for i in 1..16:
         let pick = $sample(b32Table)
         result = result & pick
+
+# TODO: https://github.com/google/google-authenticator/wiki/Key-Uri-Format
