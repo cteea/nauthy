@@ -18,7 +18,7 @@ type
         key: Bytes
         length: OtpValueLen
         hashFunc: HashFunc
-        initialCounter: uint64
+        initialCounter: int
         uri: Uri
     
     Totp* = tuple
@@ -34,15 +34,18 @@ type
         of HotpT: hotp*: Hotp
         of TotpT: totp*: Totp
 
+proc `$`*(u: Uri): string =
+    result = "{issuer: $#, accountname: $#}" % [u.issuer, u.accountname]
+
 proc initHotp*(key: string | Bytes, b32Decode: bool = false, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
     ## Constructs a new HOTP.
     if b32Decode:
         let encoded: string = key.map(b => chr(b.byte) & "").join("")
         let decoded = base32Decode(encoded)
-        result = (decoded, length, hashFunc, 0'u64, nil)
+        result = (decoded, length, hashFunc, 0, nil)
     else:
         let key: Bytes = key.map(c => byte(c))
-        result = (key, length, hashFunc, 0'u64, nil)
+        result = (key, length, hashFunc, 0, nil)
 
 proc initTotp*(key: string | Bytes, b32Decode: bool = true, length: OtpValueLen = 6, interval: TimeInterval = 30,
               hashFunc: HashFunc = sha1Hash, t0: EpochSecond = 0,): Totp =
@@ -93,7 +96,7 @@ proc otpFromUri*(uri: string): Otp =
         var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits) # TODO: currently ignoring algorithm param
         let uri = newUri(issuer, accname)
         hotp.uri = uri
-        hotp.initialCounter = (uint64)(counter)
+        hotp.initialCounter = counter
         result = Otp(otpType: HotpT, hotp: hotp)
     else:
         let period = if params.hasKey("period"): (TimeInterval)(params["period"].parseInt) else: (TimeInterval)(30)
@@ -144,6 +147,14 @@ proc buildUri*(totp: Totp): string =
     uri.query = params
     result = $uri
 
+proc `$`*(hotp: Hotp): string =
+    ## This is the same as ``hotp.buildUri()``.
+    result = hotp.buildUri()
+
+proc `$`*(totp: Totp): string =
+    ## This is the same as ``totp.buildUri()``.
+    result = totp.buildUri()
+
 proc getHotp(key: Bytes, counter: SomeUnsignedInt, digits: OtpValueLen = 6, hash: HashFunc = sha1Hash): string =
     ## Generates HOTP value from `key` and `counter`.
     let counter = (uint64)(counter)
@@ -186,5 +197,3 @@ proc randomBase32*(): string =
     for i in 1..16:
         let pick = $sample(b32Table)
         result = result & pick
-
-# TODO: https://github.com/google/google-authenticator/wiki/Key-Uri-Format

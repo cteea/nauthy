@@ -153,7 +153,7 @@ proc testOtpFromUri() =
         doAssert otp.hotp.uri.getName == "alice%40bigco.com"
         doAssert otp.hotp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.hotp.length == (OtpValueLen)(8)
-        doAssert otp.hotp.initialCounter == 7'u64
+        doAssert otp.hotp.initialCounter == 7
     block:
         doAssertRaises(KeyError):
             discard otpFromUri("otpauth://hotp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60")
@@ -184,7 +184,6 @@ proc testBuildUri() =
     block:
         let uri = "otpauth://totp/Big%20Corporation%3Aalice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60"
         let totp = otpFromUri(uri).totp
-        echo "fault = ", totp.buildUri()
         doAssert totp.buildUri() == uri
 
 testHotpValidRFC()
