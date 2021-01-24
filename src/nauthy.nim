@@ -55,12 +55,20 @@ proc initTotp*(key: string | Bytes, b32Decode: bool = true, length: OtpValueLen 
         let key: Bytes = key.map(c => byte(c))
         result = (key, length, interval, hashFunc, t0, nil)
 
+proc newUri*(issuer: string, accountname: string): Uri =
+    ## Constructs a new URI.
+    doAssert not issuer.isEmptyOrWhitespace
+    doAssert not issuer.isEmptyOrWhitespace
+    let issuer = issuer.encodeUrl(usePlus=false)
+    let accountname = accountname.encodeUrl(usePlus=false)
+    result = Uri(issuer: issuer, accountname: accountname)
+
 proc otpFromUri*(uri: string): Otp =
     ## Initialize HOTP/TOTP from a URI.
     let uri = parseUri(uri)
     doAssert uri.scheme == "otpauth", "invalid URI"
     let otpType = parseEnum[OtpType](uri.hostname)
-    let label = uri.path[1..^1].decodeUrl().split(':')
+    let label = uri.path[1..^1].decodeUrl(decodePlus=false).split(':')
     let parameters = uri.query.split('&')
     var params = initTable[string, string]()
     for p in parameters:
@@ -75,14 +83,14 @@ proc otpFromUri*(uri: string): Otp =
     if otpType == HotpT:
         let counter = params["counter"].parseInt
         var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits) # TODO: currently ignoring algorithm param
-        let uri = Uri(issuer: issuer, accountname: accname)
+        let uri = newUri(issuer.decodeUrl(decodePlus=false), accname.decodeUrl(decodePlus=false))
         hotp.uri = uri
         hotp.initialCounter = (uint64)(counter)
         result = Otp(otpType: HotpT, hotp: hotp)
     else:
         let period = if params.hasKey("period"): (TimeInterval)(params["period"].parseInt) else: (TimeInterval)(30)
         var totp = initTotp(secret.base32Decode(autoFixPadding=true), false, digits, period) # TODO: currently ignoring algorithm param
-        let uri = Uri(issuer: issuer, accountname: accname)
+        let uri = newUri(issuer.decodeUrl(decodePlus=false), accname.decodeUrl(decodePlus=false))
         totp.uri = uri
         result  = Otp(otpType: TotpT, totp: totp)
 

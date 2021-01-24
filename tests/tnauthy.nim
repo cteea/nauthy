@@ -123,7 +123,8 @@ proc testOtpFromUri() =
         let otp = otpFromUri("otpauth://totp/ACME%20Co:john.doe@email.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME%20Co&algorithm=SHA1&digits=6&period=30")
         doAssert otp.otpType == TotpT
         doAssert otp.totp.uri.issuer == "ACME%20Co"
-        doAssert otp.totp.uri.accountname == "john.doe@email.com"
+        echo "fault = ", otp.totp.uri.accountname
+        doAssert otp.totp.uri.accountname == "john.doe%40email.com"
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(6)
         doAssert otp.totp.interval == (TimeInterval)(30)
@@ -131,7 +132,7 @@ proc testOtpFromUri() =
         let otp = otpFromUri("otpauth://totp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60")
         doAssert otp.otpType == TotpT
         doAssert otp.totp.uri.issuer == "Big%20Corporation"
-        doAssert otp.totp.uri.accountname == "alice@bigco.com"
+        doAssert otp.totp.uri.accountname == "alice%40bigco.com"
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(8)
         doAssert otp.totp.interval == (TimeInterval)(60)
@@ -139,7 +140,7 @@ proc testOtpFromUri() =
         let otp = otpFromUri("otpauth://totp/Example:alice@gmail.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Example&algorithm=SHA1")
         doAssert otp.otpType == TotpT
         doAssert otp.totp.uri.issuer == "Example"
-        doAssert otp.totp.uri.accountname == "alice@gmail.com"
+        doAssert otp.totp.uri.accountname == "alice%40gmail.com"
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(6)
         doAssert otp.totp.interval == (TimeInterval)(30)
@@ -150,7 +151,7 @@ proc testOtpFromUri() =
         let otp = otpFromUri("otpauth://hotp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60&counter=7")
         doAssert otp.otpType == HotpT
         doAssert otp.hotp.uri.issuer == "Big%20Corporation"
-        doAssert otp.hotp.uri.accountname == "alice@bigco.com"
+        doAssert otp.hotp.uri.accountname == "alice%40bigco.com"
         doAssert otp.hotp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.hotp.length == (OtpValueLen)(8)
         doAssert otp.hotp.initialCounter == 7'u64
