@@ -11,8 +11,8 @@ type
         TotpT = "totp"
 
     Uri* = ref object
-        issuer*: string
-        accountname*: string
+        issuer: string
+        accountname: string
 
     Hotp* = tuple
         key: Bytes
@@ -59,9 +59,17 @@ proc newUri*(issuer: string, accountname: string): Uri =
     ## Constructs a new URI.
     doAssert not issuer.isEmptyOrWhitespace
     doAssert not issuer.isEmptyOrWhitespace
-    let issuer = issuer.encodeUrl(usePlus=false)
-    let accountname = accountname.encodeUrl(usePlus=false)
+    let issuer = issuer.decodeUrl(decodePlus=false)
+    let accountname = accountname.decodeUrl(decodePlus=false)
     result = Uri(issuer: issuer, accountname: accountname)
+
+proc getName*(uri: Uri): string =
+    ## Getter to extract account name from URI.
+    result = uri.accountname.encodeUrl(usePlus=false)
+
+proc getIssuer*(uri: Uri): string =
+    ## Getter to extranct issuer from URI.
+    result = uri.issuer.encodeUrl(usePlus=false)
 
 proc otpFromUri*(uri: string): Otp =
     ## Initialize HOTP/TOTP from a URI.
@@ -83,25 +91,25 @@ proc otpFromUri*(uri: string): Otp =
     if otpType == HotpT:
         let counter = params["counter"].parseInt
         var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits) # TODO: currently ignoring algorithm param
-        let uri = newUri(issuer.decodeUrl(decodePlus=false), accname.decodeUrl(decodePlus=false))
+        let uri = newUri(issuer, accname)
         hotp.uri = uri
         hotp.initialCounter = (uint64)(counter)
         result = Otp(otpType: HotpT, hotp: hotp)
     else:
         let period = if params.hasKey("period"): (TimeInterval)(params["period"].parseInt) else: (TimeInterval)(30)
         var totp = initTotp(secret.base32Decode(autoFixPadding=true), false, digits, period) # TODO: currently ignoring algorithm param
-        let uri = newUri(issuer.decodeUrl(decodePlus=false), accname.decodeUrl(decodePlus=false))
+        let uri = newUri(issuer, accname)
         totp.uri = uri
         result  = Otp(otpType: TotpT, totp: totp)
 
 proc buildUri*(hotp: Hotp): string =
     ## Build URI from HOTP
     doAssert not hotp.uri.isNil
-    doAssert not hotp.uri.issuer.isEmptyOrWhitespace
-    doAssert not hotp.uri.accountname.isEmptyOrWhitespace
-    let issuer = hotp.uri.issuer
-    let accountname = hotp.uri.accountname.encodeUrl(usePlus=false)
-    let label = issuer.encodeUrl(usePlus=false) & "%3A" & accountname
+    doAssert not hotp.uri.getIssuer.isEmptyOrWhitespace
+    doAssert not hotp.uri.getName.isEmptyOrWhitespace
+    let issuer = hotp.uri.getIssuer.decodeUrl(decodePlus=false)
+    let accountname = hotp.uri.getName.decodeUrl(decodePlus=false)
+    let label = issuer.encodeUrl(usePlus=false) & "%3A" & accountname.encodeUrl(usePlus=false)
     let secret = hotp.key.base32Encode(ignorePadding=true)
     let algorithm = "SHA1" # TODO: currently only sha1 is available
     let digits = $hotp.length
@@ -111,6 +119,27 @@ proc buildUri*(hotp: Hotp): string =
     var uri = initUri()
     uri.scheme = "otpauth"
     uri.hostname = "hotp"
+    uri.path = "/" & label
+    uri.query = params
+    result = $uri
+
+proc buildUri*(totp: Totp): string =
+    ## Build URI from TOTP
+    doAssert not totp.uri.isNil
+    doAssert not totp.uri.getIssuer.isEmptyOrWhitespace
+    doAssert not totp.uri.getName.isEmptyOrWhitespace
+    let issuer = totp.uri.getIssuer.decodeUrl(decodePlus=false)
+    let accountname = totp.uri.getName.decodeUrl(decodePlus=false)
+    let label = issuer.encodeUrl(usePlus=false) & "%3A" & accountname.encodeUrl(usePlus=false)
+    let secret = totp.key.base32Encode(ignorePadding=true)
+    let algorithm = "SHA1" # TODO: currently only sha1 is available
+    let digits = $totp.length
+    let period = $totp.interval
+    let params = encodeQuery({"secret": secret, "issuer": issuer, "algorithm": algorithm,
+                              "digits": digits, "period": period}, usePlus=false)
+    var uri = initUri()
+    uri.scheme = "otpauth"
+    uri.hostname = "totp"
     uri.path = "/" & label
     uri.query = params
     result = $uri

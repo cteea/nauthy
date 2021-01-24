@@ -122,25 +122,24 @@ proc testOtpFromUri() =
     block:
         let otp = otpFromUri("otpauth://totp/ACME%20Co:john.doe@email.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME%20Co&algorithm=SHA1&digits=6&period=30")
         doAssert otp.otpType == TotpT
-        doAssert otp.totp.uri.issuer == "ACME%20Co"
-        echo "fault = ", otp.totp.uri.accountname
-        doAssert otp.totp.uri.accountname == "john.doe%40email.com"
+        doAssert otp.totp.uri.getIssuer == "ACME%20Co"
+        doAssert otp.totp.uri.getName == "john.doe%40email.com"
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(6)
         doAssert otp.totp.interval == (TimeInterval)(30)
     block:
         let otp = otpFromUri("otpauth://totp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60")
         doAssert otp.otpType == TotpT
-        doAssert otp.totp.uri.issuer == "Big%20Corporation"
-        doAssert otp.totp.uri.accountname == "alice%40bigco.com"
+        doAssert otp.totp.uri.getIssuer == "Big%20Corporation"
+        doAssert otp.totp.uri.getName == "alice%40bigco.com"
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(8)
         doAssert otp.totp.interval == (TimeInterval)(60)
     block:
         let otp = otpFromUri("otpauth://totp/Example:alice@gmail.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Example&algorithm=SHA1")
         doAssert otp.otpType == TotpT
-        doAssert otp.totp.uri.issuer == "Example"
-        doAssert otp.totp.uri.accountname == "alice%40gmail.com"
+        doAssert otp.totp.uri.getIssuer == "Example"
+        doAssert otp.totp.uri.getName == "alice%40gmail.com"
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(6)
         doAssert otp.totp.interval == (TimeInterval)(30)
@@ -150,8 +149,8 @@ proc testOtpFromUri() =
     block:
         let otp = otpFromUri("otpauth://hotp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60&counter=7")
         doAssert otp.otpType == HotpT
-        doAssert otp.hotp.uri.issuer == "Big%20Corporation"
-        doAssert otp.hotp.uri.accountname == "alice%40bigco.com"
+        doAssert otp.hotp.uri.getIssuer == "Big%20Corporation"
+        doAssert otp.hotp.uri.getName == "alice%40bigco.com"
         doAssert otp.hotp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.hotp.length == (OtpValueLen)(8)
         doAssert otp.hotp.initialCounter == 7'u64
@@ -166,9 +165,27 @@ proc testBuildUri() =
             discard hotp.buildUri()
     block:
         var hotp = initHotp("12345678901234567890")
-        let uri = Uri(issuer: "Example issuer", accountname: "foo@example.com")
+        let uri = newUri("Example issuer", "foo@example.com")
         hotp.uri = uri
         doAssert hotp.buildUri() == "otpauth://hotp/Example%20issuer%3Afoo%40example.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Example%20issuer&algorithm=SHA1&digits=6&counter=0"
+    block:
+        let uri = "otpauth://hotp/Big%20Corporation%3Aalice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&counter=7"
+        var hotp = otpFromUri(uri).hotp
+        doAssert hotp.buildUri() ==  uri
+    block:
+        let totp = initTotp("12345678901234567890", b32Decode=false)
+        doAssertRaises(AssertionDefect):
+            discard totp.buildUri()
+    block:
+        var totp = initTotp("12345678901234567890", b32Decode=false)
+        let uri = newUri("Example issuer", "foo@example.com")
+        totp.uri = uri
+        doAssert totp.buildUri() == "otpauth://totp/Example%20issuer%3Afoo%40example.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Example%20issuer&algorithm=SHA1&digits=6&period=30"
+    block:
+        let uri = "otpauth://totp/Big%20Corporation%3Aalice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60"
+        let totp = otpFromUri(uri).totp
+        echo "fault = ", totp.buildUri()
+        doAssert totp.buildUri() == uri
 
 testHotpValidRFC()
 testTotpValidRFC()
