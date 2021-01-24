@@ -153,10 +153,21 @@ proc testOtpFromUri() =
         doAssert otp.hotp.uri.accountname == "alice@bigco.com"
         doAssert otp.hotp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.hotp.length == (OtpValueLen)(8)
-        doAssert otp.hotp.counter == 7'u64
+        doAssert otp.hotp.initialCounter == 7'u64
     block:
         doAssertRaises(KeyError):
             discard otpFromUri("otpauth://hotp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60")
+
+proc testBuildUri() =
+    block:
+        var hotp = initHotp("12345678901234567890")
+        doAssertRaises(AssertionDefect):
+            discard hotp.buildUri()
+    block:
+        var hotp = initHotp("12345678901234567890")
+        let uri = Uri(issuer: "Example issuer", accountname: "foo@example.com")
+        hotp.uri = uri
+        doAssert hotp.buildUri() == "otpauth://hotp/Example%20issuer%3Afoo%40example.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Example%20issuer&algorithm=SHA1&digits=6&counter=0"
 
 testHotpValidRFC()
 testTotpValidRFC()
@@ -165,3 +176,4 @@ testHotpVerify()
 testTotpVerify()
 testRandomBase32()
 testOtpFromUri()
+testBuildUri()

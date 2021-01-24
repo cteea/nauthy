@@ -18,7 +18,7 @@ type
         key: Bytes
         length: OtpValueLen
         hashFunc: HashFunc
-        counter: uint64
+        initialCounter: uint64
         uri: Uri
     
     Totp* = tuple
@@ -77,7 +77,7 @@ proc otpFromUri*(uri: string): Otp =
         var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits) # TODO: currently ignoring algorithm param
         let uri = Uri(issuer: issuer, accountname: accname)
         hotp.uri = uri
-        hotp.counter = (uint64)(counter)
+        hotp.initialCounter = (uint64)(counter)
         result = Otp(otpType: HotpT, hotp: hotp)
     else:
         let period = if params.hasKey("period"): (TimeInterval)(params["period"].parseInt) else: (TimeInterval)(30)
@@ -85,6 +85,27 @@ proc otpFromUri*(uri: string): Otp =
         let uri = Uri(issuer: issuer, accountname: accname)
         totp.uri = uri
         result  = Otp(otpType: TotpT, totp: totp)
+
+proc buildUri*(hotp: Hotp): string =
+    ## Build URI from HOTP
+    doAssert not hotp.uri.isNil
+    doAssert not hotp.uri.issuer.isEmptyOrWhitespace
+    doAssert not hotp.uri.accountname.isEmptyOrWhitespace
+    let issuer = hotp.uri.issuer
+    let accountname = hotp.uri.accountname.encodeUrl(usePlus=false)
+    let label = issuer.encodeUrl(usePlus=false) & "%3A" & accountname
+    let secret = hotp.key.base32Encode(ignorePadding=true)
+    let algorithm = "SHA1" # TODO: currently only sha1 is available
+    let digits = $hotp.length
+    let counter = $hotp.initialCounter
+    let params = encodeQuery({"secret": secret, "issuer": issuer, "algorithm": algorithm,
+                              "digits": digits, "counter": counter}, usePlus=false)
+    var uri = initUri()
+    uri.scheme = "otpauth"
+    uri.hostname = "hotp"
+    uri.path = "/" & label
+    uri.query = params
+    result = $uri
 
 proc getHotp(key: Bytes, counter: SomeUnsignedInt, digits: OtpValueLen = 6, hash: HashFunc = sha1Hash): string =
     ## Generates HOTP value from `key` and `counter`.
