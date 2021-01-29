@@ -51,32 +51,41 @@ proc testTotpValidRFC() =
     ## Test TOTP implementation using the valid test values provided in RFC6238.
     
     # Test by initializing a Totp with a sequence of bytes.
-    let secret: Bytes = "12345678901234567890".map(c => (byte)(c))
-    let totp = initTotp(secret, false, 8)
-    let correctValues = [(59'u64, "94287082"), (1111111109'u64, "07081804"), (1111111111'u64, "14050471"),
-                         (1234567890'u64, "89005924"), (2000000000'u64, "69279037"), (20000000000'u64, "65353130")]
-    for (time, correct) in correctValues:
-        let value = totp.at(time)
-        doAssert value == correct, "Test for Totp.at() failed; result = $1, correct_value = $2" % [$value, $correct]
+    let secretSha1: Bytes = cast[Bytes]("12345678901234567890")
+    let secretSha256: Bytes = cast[Bytes]("12345678901234567890123456789012")
+    let secretSha512: Bytes = cast[Bytes]("1234567890123456789012345678901234567890123456789012345678901234")
+    let correctValues = [(59'u64, "94287082", "46119246", "90693936"),
+                         (1111111109'u64, "07081804", "68084774", "25091201"),
+                         (1111111111'u64, "14050471", "67062674", "99943326"),
+                         (1234567890'u64, "89005924", "91819424", "93441116"),
+                         (2000000000'u64, "69279037", "90698825", "38618901"),
+                         (20000000000'u64, "65353130", "77737706", "47863826")]
+    for (time, correctSha1, correctSha256, correctSha512) in correctValues:
+        let totpSha1 = initTotp(secretSha1, false, 8, hashFunc=sha1Hash)
+        doAssert totpSha1.at(time) == correctSha1
+        let totpSha256 = initTotp(secretSha256, false, 8, hashFunc=sha256Hash)
+        doAssert totpSha256.at(time) == correctSha256
+        let totpSha512 = initTotp(secretSha512, false, 8, hashFunc=sha512Hash)
+        doAssert totpSha512.at(time) == correctSha512
 
     # Test by initializing a Totp with a string.
     let secretStr = "12345678901234567890"
     let totp2 = initTotp(secretStr, false, 8)
-    for (time, correct) in correctValues:
+    for (time, correct, _, _) in correctValues:
         let value = totp2.at(time)
         doAssert value == correct, "Test for Totp.at() failed; result = $1, correct_value = $2" % [$value, $correct]
 
     # Test by initializing a Totp with a base32 encoded string.
     let secretStrEncoded = base32Encode("12345678901234567890")
     let totp3 = initTotp(key=secretStrEncoded, length=8)
-    for (time, correct) in correctValues:
+    for (time, correct, _, _) in correctValues:
         let value = totp3.at(time)
         doAssert value == correct, "Test for Totp.at() failed; result = $1, correct_value = $2" % [$value, $correct]
 
     # Test by initializing a Totp with a base32 encoded sequence of bytes.
     let secretBytesEncoded: Bytes = base32Encode("12345678901234567890").map(c => byte(c))
     let totp4 = initTotp(key=secretBytesEncoded, length=8)
-    for (time, correct) in correctValues:
+    for (time, correct, _, _) in correctValues:
         let value = totp4.at(time)
         doAssert value == correct, "Test for Totp.at() failed; result = $1, correct_value = $2" % [$value, $correct]
 
@@ -127,14 +136,25 @@ proc testOtpFromUri() =
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(6)
         doAssert otp.totp.interval == (TimeInterval)(30)
+        doAssert otp.totp.hashFunc.name == $SHA1
     block:
-        let otp = otpFromUri("otpauth://totp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&period=60")
+        let otp = otpFromUri("otpauth://totp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA256&digits=8&period=60")
         doAssert otp.otpType == TotpT
         doAssert otp.totp.uri.getIssuer == "Big%20Corporation"
         doAssert otp.totp.uri.getName == "alice%40bigco.com"
         doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
         doAssert otp.totp.length == (OtpValueLen)(8)
         doAssert otp.totp.interval == (TimeInterval)(60)
+        doAssert otp.totp.hashFunc.name == $SHA256
+    block:
+        let otp = otpFromUri("otpauth://totp/Big%20Corporation%3A%20alice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA512")
+        doAssert otp.otpType == TotpT
+        doAssert otp.totp.uri.getIssuer == "Big%20Corporation"
+        doAssert otp.totp.uri.getName == "alice%40bigco.com"
+        doAssert otp.totp.key.base32Encode(ignorePadding=true) == "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
+        doAssert otp.totp.length == (OtpValueLen)(6)
+        doAssert otp.totp.interval == (TimeInterval)(30)
+        doAssert otp.totp.hashFunc.name == $SHA512
     block:
         let otp = otpFromUri("otpauth://totp/Example:alice@gmail.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Example&algorithm=SHA1")
         doAssert otp.otpType == TotpT
@@ -170,6 +190,14 @@ proc testBuildUri() =
         doAssert hotp.buildUri() == "otpauth://hotp/Example%20issuer%3Afoo%40example.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Example%20issuer&algorithm=SHA1&digits=6&counter=0"
     block:
         let uri = "otpauth://hotp/Big%20Corporation%3Aalice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA1&digits=8&counter=7"
+        var hotp = otpFromUri(uri).hotp
+        doAssert hotp.buildUri() ==  uri
+    block:
+        let uri = "otpauth://hotp/Big%20Corporation%3Aalice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA256&digits=8&counter=7"
+        var hotp = otpFromUri(uri).hotp
+        doAssert hotp.buildUri() ==  uri
+    block:
+        let uri = "otpauth://hotp/Big%20Corporation%3Aalice%40bigco.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=Big%20Corporation&algorithm=SHA512&digits=8&counter=7"
         var hotp = otpFromUri(uri).hotp
         doAssert hotp.buildUri() ==  uri
     block:

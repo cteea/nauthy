@@ -10,6 +10,7 @@ type
     HashFunc* = tuple
         hash: proc (input: Bytes): Bytes {.nimcall.}
         blockSize: int
+        name: string
 
 proc intToBytes(num: uint64): Bytes =
     ## Convert `num` to a sequence of 8 bytes in big endian.

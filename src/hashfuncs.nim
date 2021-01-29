@@ -1,5 +1,13 @@
-import sequtils, std/sha1, typetraits, md5, strutils
+import sequtils, std/sha1, typetraits, md5, strutils, tables, algorithm
+import nimSHA2
 include "./utils"
+
+type
+    Algorithm* = enum
+        MD5,
+        SHA1,
+        SHA256,
+        SHA512
 
 proc hmacX(key: Bytes, message: Bytes, hash: HashFunc): Bytes {.used.} =
     ## Generic HMAC implementation. Specify a hash function as argument to implement
@@ -20,19 +28,31 @@ proc hmacX(key: Bytes, message: Bytes, hash: HashFunc): Bytes {.used.} =
 
 proc sha1Digest(input: Bytes): Bytes =
     ## Generates SHA-1 hash from the given bytes.
-    var str: string = ""
-    for b in input:
-        str.add(chr(b))
-    result = @(distinctBase(secureHash(str)))
+    let input = cast[string](input)
+    result = @(distinctBase(secureHash(input)))
 
-let sha1Hash*: HashFunc = (hash: sha1Digest, blockSize: 64)
+let sha1Hash*: HashFunc = (hash: sha1Digest, blockSize: 64, name: $SHA1)
 
 proc md5Digest(input: Bytes): Bytes =
     ## Generates MD5 hash from the given bytes.
-    var str: string
-    for c in input:
-        str.add(chr(c))
-    str = getMD5(str)
-    result = cast[Bytes](parseHexStr(str))
+    let input = cast[string](input)
+    let digest = getMD5(input)
+    result = cast[Bytes](parseHexStr(digest))
 
-let md5Hash*: HashFunc = (hash: md5Digest, blockSize: 64)
+let md5Hash*: HashFunc = (hash: md5Digest, blockSize: 64, name: $MD5)
+
+proc sha256Digest(input: Bytes): Bytes =
+    let input = cast[string](input)
+    let digest = computeSHA256(input).toSeq()
+    result = cast[Bytes](digest)
+
+let sha256Hash*: HashFunc = (hash: sha256Digest, blockSize: 64, name: $SHA256)
+
+proc sha512Digest(input: Bytes): Bytes =
+    let input = cast[string](input)
+    let digest = computeSHA512(input).toSeq()
+    result = cast[Bytes](digest)
+
+let sha512Hash*: HashFunc = (hash: sha512Digest, blockSize: 128, name: $SHA512)
+
+let algorithms* = {MD5: md5Hash, SHA1: sha1Hash, SHA256: sha256Hash, SHA512: sha512Hash}.toTable

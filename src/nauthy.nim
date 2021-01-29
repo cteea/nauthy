@@ -87,20 +87,20 @@ proc otpFromUri*(uri: string): Otp =
         params[s[0]] = s[1]
     let secret = params["secret"]
     let issuer = params["issuer"].strip()
-    # let algorithm = params["algorithm"]
+    let algorithm = if params.hasKey("algorithm"): parseEnum[Algorithm](params["algorithm"]) else: SHA1
     let digits = if params.hasKey("digits"): (OtpValueLen)(params["digits"].parseInt) else: (OtpValueLen)(6)
     var accname = if label.len == 2: label[1] else: label[0]
     accname = accname.strip()
     if otpType == HotpT:
         let counter = params["counter"].parseInt
-        var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits) # TODO: currently ignoring algorithm param
+        var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits, algorithms[algorithm])
         let uri = newUri(issuer, accname)
         hotp.uri = uri
         hotp.initialCounter = counter
         result = Otp(otpType: HotpT, hotp: hotp)
     else:
         let period = if params.hasKey("period"): (TimeInterval)(params["period"].parseInt) else: (TimeInterval)(30)
-        var totp = initTotp(secret.base32Decode(autoFixPadding=true), false, digits, period) # TODO: currently ignoring algorithm param
+        var totp = initTotp(secret.base32Decode(autoFixPadding=true), false, digits, period, algorithms[algorithm])
         let uri = newUri(issuer, accname)
         totp.uri = uri
         result  = Otp(otpType: TotpT, totp: totp)
@@ -114,7 +114,8 @@ proc buildUri*(hotp: Hotp): string =
     let accountname = hotp.uri.getName.decodeUrl(decodePlus=false)
     let label = issuer.encodeUrl(usePlus=false) & "%3A" & accountname.encodeUrl(usePlus=false)
     let secret = hotp.key.base32Encode(ignorePadding=true)
-    let algorithm = "SHA1" # TODO: currently only sha1 is available
+    doAssert not hotp.hashFunc.name.isEmptyOrWhitespace()
+    let algorithm = hotp.hashFunc.name.toUpperAscii()
     let digits = $hotp.length
     let counter = $hotp.initialCounter
     let params = encodeQuery({"secret": secret, "issuer": issuer, "algorithm": algorithm,
@@ -135,7 +136,8 @@ proc buildUri*(totp: Totp): string =
     let accountname = totp.uri.getName.decodeUrl(decodePlus=false)
     let label = issuer.encodeUrl(usePlus=false) & "%3A" & accountname.encodeUrl(usePlus=false)
     let secret = totp.key.base32Encode(ignorePadding=true)
-    let algorithm = "SHA1" # TODO: currently only sha1 is available
+    doAssert not totp.hashFunc.name.isEmptyOrWhitespace()
+    let algorithm = totp.hashFunc.name.toUpperAscii()
     let digits = $totp.length
     let period = $totp.interval
     let params = encodeQuery({"secret": secret, "issuer": issuer, "algorithm": algorithm,
