@@ -23,7 +23,7 @@
 ##   echo otp.totp.now() 
 ## 
 ##   # Build a URI from a TOTP
-##   totp.uri = newUri(issuer: "ACME Co", accountname: "alice@example.com")
+##   totp.uri = newUri("Example issuer", "accountname@example.com")
 ##   echo totp.buildUri()
 ##   
 
