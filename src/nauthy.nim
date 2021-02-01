@@ -69,7 +69,7 @@ proc `$`*(u: Uri): string =
 proc initHotp*(key: string | Bytes, b32Decode: bool = false, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
     ## Constructs a new HOTP. `sha1Hash` is the default but other hash modes are also available:
     ## `md5Hash`, `sha256Hash` and `sha512Hash`. Custom hash functions are also accepted. If the
-    ## given `key` is base32-encoded, given the `b32Decode` argument as `true`.
+    ## given `key` is base32-encoded, give the `b32Decode` argument as `true`.
     if b32Decode:
         let encoded: string = key.map(b => chr(b.byte) & "").join("")
         let decoded = base32Decode(encoded)
