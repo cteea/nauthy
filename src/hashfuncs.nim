@@ -55,4 +55,4 @@ proc sha512Digest(input: Bytes): Bytes =
 
 let sha512Hash*: HashFunc = (hash: sha512Digest, blockSize: 128, name: $SHA512)
 
-let algorithms* = {MD5: md5Hash, SHA1: sha1Hash, SHA256: sha256Hash, SHA512: sha512Hash}.toTable
+let algorithms = {MD5: md5Hash, SHA1: sha1Hash, SHA256: sha256Hash, SHA512: sha512Hash}.toTable

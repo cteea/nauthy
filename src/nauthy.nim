@@ -1,3 +1,32 @@
+## A library for generating and verifying one-time passwords (OTP).
+## ``nauthy`` library implements counter-based OTP (RFC4226) and time-based OTP (RFC6238).
+## Various hash modes are supported: `MD5`, `SHA1`, `SHA256` and `SHA512` as
+## well as custom hash functions.
+## 
+## Basic usage
+## ===========
+## 
+## Some examples to get started:
+## 
+## .. code-block::
+##   import nauthy
+##   
+##   # Construct a new TOTP with a base-32 encoded key.
+##   var totp = initTotp("HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ")
+##   # Print out the current totp value
+##   echo totp.now()
+## 
+##   # Construct a new TOTP from a URI.
+##   var otp = otpFromUri(
+##      "otpauth://totp/ACME%20Co:john@example.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME%20Co"
+##   )
+##   echo otp.totp.now() 
+## 
+##   # Build a URI from a TOTP
+##   totp.uri = newUri(issuer: "ACME Co", accountname: "alice@example.com")
+##   echo totp.buildUri()
+##   
+
 import math, strutils, times, sequtils, sugar, random, uri, tables
 include "./hashfuncs"
 
@@ -38,7 +67,9 @@ proc `$`*(u: Uri): string =
     result = "{issuer: $#, accountname: $#}" % [u.issuer, u.accountname]
 
 proc initHotp*(key: string | Bytes, b32Decode: bool = false, length: OtpValueLen = 6, hashFunc: HashFunc = sha1Hash): Hotp =
-    ## Constructs a new HOTP.
+    ## Constructs a new HOTP. `sha1Hash` is the default but other hash modes are also available:
+    ## `md5Hash`, `sha256Hash` and `sha512Hash`. Custom hash functions are also accepted. If the
+    ## given `key` is base32-encoded, given the `b32Decode` argument as `true`.
     if b32Decode:
         let encoded: string = key.map(b => chr(b.byte) & "").join("")
         let decoded = base32Decode(encoded)
@@ -49,7 +80,9 @@ proc initHotp*(key: string | Bytes, b32Decode: bool = false, length: OtpValueLen
 
 proc initTotp*(key: string | Bytes, b32Decode: bool = true, length: OtpValueLen = 6, interval: TimeInterval = 30,
               hashFunc: HashFunc = sha1Hash, t0: EpochSecond = 0,): Totp =
-    ## Constructs a new TOTP.
+    ## Constructs a new TOTP. `sha1Hash` is the default but other hash modes are also available:
+    ## `md5Hash`, `sha256Hash` and `sha512Hash`. Custom hash functions are also accepted. If the
+    ## given `key` is base32-encoded, give the `b32Decode` argument as `true`.
     if b32Decode:
         let encoded: string = key.map(b => chr(b.byte) & "").join("")
         let decoded = base32Decode(encoded)
@@ -67,15 +100,20 @@ proc newUri*(issuer: string, accountname: string): Uri =
     result = Uri(issuer: issuer, accountname: accountname)
 
 proc getName*(uri: Uri): string =
-    ## Getter to extract account name from URI.
+    ## Extract account name from a URI.
     result = uri.accountname.encodeUrl(usePlus=false)
 
 proc getIssuer*(uri: Uri): string =
-    ## Getter to extranct issuer from URI.
+    ## Extract issuer from a URI.
     result = uri.issuer.encodeUrl(usePlus=false)
 
 proc otpFromUri*(uri: string): Otp =
     ## Initialize HOTP/TOTP from a URI.
+    runnableExamples:
+        let otp = otpFromUri(
+            "otpauth://totp/ACME:john@dot.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME"
+            )
+        var totp = otp.totp
     let uri = parseUri(uri)
     doAssert uri.scheme == "otpauth", "invalid URI"
     let otpType = parseEnum[OtpType](uri.hostname)
@@ -106,7 +144,7 @@ proc otpFromUri*(uri: string): Otp =
         result  = Otp(otpType: TotpT, totp: totp)
 
 proc buildUri*(hotp: Hotp): string =
-    ## Build URI from HOTP
+    ## Build URI from HOTP.
     doAssert not hotp.uri.isNil
     doAssert not hotp.uri.getIssuer.isEmptyOrWhitespace
     doAssert not hotp.uri.getName.isEmptyOrWhitespace
@@ -128,7 +166,7 @@ proc buildUri*(hotp: Hotp): string =
     result = $uri
 
 proc buildUri*(totp: Totp): string =
-    ## Build URI from TOTP
+    ## Build URI from TOTP.
     doAssert not totp.uri.isNil
     doAssert not totp.uri.getIssuer.isEmptyOrWhitespace
     doAssert not totp.uri.getName.isEmptyOrWhitespace
@@ -167,8 +205,10 @@ proc getHotp(key: Bytes, counter: SomeUnsignedInt, digits: OtpValueLen = 6, hash
     truncated = truncated mod uint64(10 ^ digits)
     result = align($truncated, digits, '0')
 
+proc currentTime(): EpochSecond = (EpochSecond)(epochTime())
+
 proc getTotp(key: Bytes, digits: OtpValueLen = 6, interval: TimeInterval = 30,
-           hash: HashFunc = sha1Hash, now: EpochSecond = (EpochSecond)(epochTime()), t0: EpochSecond = 0): string =
+           hash: HashFunc = sha1Hash, now: EpochSecond = currentTime(), t0: EpochSecond = 0): string =
     ## Generates TOTP value from `key` using `t0` as the initial point in time
     ## to begin counting the time steps and the interval of each time step is
     ## 30 seconds by default. `t0` is Unix epoch so it is set to 0 by default.
@@ -176,25 +216,29 @@ proc getTotp(key: Bytes, digits: OtpValueLen = 6, interval: TimeInterval = 30,
     result = getHotp(key, c.uint64, digits, hash)
 
 proc at*(hotp: Hotp, counter: SomeInteger): string =
-    ## HOTP value at `counter`.
+    ## Get HOTP value at `counter`.
     doAssert counter >= 0, "value for `counter` must not be negative"
     result = getHotp(hotp.key, (uint64)(counter), hotp.length, hotp.hashFunc)
 
-proc at*(totp: Totp, now: EpochSecond = (uint64)(epochTime())): string =
-    ## TOTP value at time `now`. If `now` is not specified, the current epoch time is used instead.
-    result = getTotp(totp.key, totp.length, totp.interval, totp.hashFunc, now, totp.t0)
+proc at*(totp: Totp, utime: EpochSecond): string =
+    ## Get TOTP value at time `utime`.
+    result = getTotp(totp.key, totp.length, totp.interval, totp.hashFunc, utime, totp.t0)
+
+proc now*(totp: Totp): string =
+    ## Get TOTP value at current time.
+    result = totp.at(currentTime())
 
 proc verify*(hotp: Hotp, value: string, counter: SomeInteger): bool =
-    ## Verify that the HOTP value for `counter` is correct.
+    ## Verify that the given HOTP `value` is correct.
     result = value == hotp.at(counter)
 
-proc verify*(totp: Totp, value: string, now: EpochSecond = (uint64)(epochTime())): bool =
-    ## Verify that the TOTP value for `now` is correct.
+proc verify*(totp: Totp, value: string, now: EpochSecond = currentTime()): bool =
+    ## Verify that the given TOTP `value` is correct.
     result = value == totp.at(now)
 
 proc randomBase32*(): string =
     ## Generates a random 16-characters Base-32 encoded string.
-    ## Compatible with other OTP apps such as Google Authenticator, Authy, etc...
+    ## Compatible with other OTP apps such as Google Authenticator and Authy.
     randomize()
     for i in 1..16:
         let pick = $sample(b32Table)
