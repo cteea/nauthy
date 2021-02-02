@@ -1,6 +1,6 @@
 import sequtils, sugar, strutils, random
-include "../src/utils"
-import "../src/nauthy"
+include "nauthy/utils"
+import nauthy
 
 proc testHotpValidRFC() =
     ## Test HOTP implementation using the valid test values provided in RFC4226.

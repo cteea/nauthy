@@ -28,7 +28,7 @@
 ##   
 
 import math, strutils, times, sequtils, sugar, random, uri, tables
-include "./hashfuncs"
+include "nauthy/hashfuncs"
 
 type
     OtpValueLen* = range[6..10]

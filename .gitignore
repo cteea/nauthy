@@ -1,5 +1,1 @@
 nimcache/
-
-testresults/
-/tests/*
-!/tests/*.nim

@@ -1,6 +1,6 @@
 import random, strutils, sequtils, sugar
 
-include "../src/utils"
+include "nauthy/utils"
 
 proc testIntToBytes() =
     randomize()

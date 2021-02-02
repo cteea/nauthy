@@ -1,5 +1,5 @@
 import strutils, sequtils, sugar
-include "../src/hashfuncs"
+include "nauthy/hashfuncs"
 
 proc testHmacSha1() =
     var k: Bytes = "key".map(c => (byte)(c))
