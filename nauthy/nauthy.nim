@@ -114,6 +114,7 @@ proc otpFromUri*(uri: string): Otp =
             "otpauth://totp/ACME:john@dot.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME"
             )
         var totp = otp.totp
+        echo totp.now()
     let uri = parseUri(uri)
     doAssert uri.scheme == "otpauth", "invalid URI"
     let otpType = parseEnum[OtpType](uri.hostname)
