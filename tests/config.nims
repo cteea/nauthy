@@ -1,1 +1,1 @@
-switch("path", "$projectDir/../nauthy")
+switch("path", "$projectDir/../src")
