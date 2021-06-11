@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.1.1"
 author        = "lzoz"
 description   = "Nim library for One Time Password verification and generation."
 license       = "MIT"
