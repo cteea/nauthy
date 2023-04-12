@@ -132,14 +132,14 @@ proc otpFromUri*(uri: string): Otp =
   accname = accname.strip()
   if otpType == HotpT:
     let counter = params["counter"].parseInt
-    var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits, algorithms[algorithm])
+    var hotp = initHotp(secret.base32Decode(autoFixPadding=true), false, digits, getAlgorithm(algorithm))
     let uri = newUri(issuer, accname)
     hotp.uri = uri
     hotp.initialCounter = counter
     result = Otp(otpType: HotpT, hotp: hotp)
   else:
     let period = if params.hasKey("period"): (TimeInterval)(params["period"].parseInt) else: (TimeInterval)(30)
-    var totp = initTotp(secret.base32Decode(autoFixPadding=true), false, digits, period, algorithms[algorithm])
+    var totp = initTotp(secret.base32Decode(autoFixPadding=true), false, digits, period, getAlgorithm(algorithm))
     let uri = newUri(issuer, accname)
     totp.uri = uri
     result  = Otp(otpType: TotpT, totp: totp)
