@@ -8,7 +8,7 @@ const b32Table = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 type
   Bytes* = seq[byte]
   HashFunc* = tuple
-    hash: proc (input: Bytes): Bytes {.nimcall.}
+    hash: proc (input: Bytes): Bytes {.nimcall, gcsafe.}
     blockSize: int
     name: string
 

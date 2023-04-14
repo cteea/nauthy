@@ -31,7 +31,7 @@ proc sha1Digest(input: Bytes): Bytes =
   let input = cast[string](input)
   result = @(distinctBase(secureHash(input)))
 
-let sha1Hash*: HashFunc = (hash: sha1Digest, blockSize: 64, name: $SHA1)
+const sha1Hash*: HashFunc = (hash: sha1Digest, blockSize: 64, name: $SHA1)
 
 proc md5Digest(input: Bytes): Bytes =
   ## Generates MD5 hash from the given bytes.
@@ -39,20 +39,25 @@ proc md5Digest(input: Bytes): Bytes =
   let digest = getMD5(input)
   result = cast[Bytes](parseHexStr(digest))
 
-let md5Hash*: HashFunc = (hash: md5Digest, blockSize: 64, name: $MD5)
+const md5Hash*: HashFunc = (hash: md5Digest, blockSize: 64, name: $MD5)
 
 proc sha256Digest(input: Bytes): Bytes =
   let input = cast[string](input)
   let digest = computeSHA256(input).toSeq()
   result = cast[Bytes](digest)
 
-let sha256Hash*: HashFunc = (hash: sha256Digest, blockSize: 64, name: $SHA256)
+const sha256Hash*: HashFunc = (hash: sha256Digest, blockSize: 64, name: $SHA256)
 
 proc sha512Digest(input: Bytes): Bytes =
   let input = cast[string](input)
   let digest = computeSHA512(input).toSeq()
   result = cast[Bytes](digest)
 
-let sha512Hash*: HashFunc = (hash: sha512Digest, blockSize: 128, name: $SHA512)
+const sha512Hash*: HashFunc = (hash: sha512Digest, blockSize: 128, name: $SHA512)
 
-let algorithms = {MD5: md5Hash, SHA1: sha1Hash, SHA256: sha256Hash, SHA512: sha512Hash}.toTable
+func getAlgorithm*(name: auto): auto {.gcsafe.} =
+  case name
+  of MD5: result = md5Hash
+  of SHA1: result = sha1Hash
+  of SHA256: result = sha256Hash
+  of SHA512: result = sha512Hash
